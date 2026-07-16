@@ -1,0 +1,9 @@
+CREATE TABLE ball_positions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  position TINYINT UNSIGNED NOT NULL,
+  recorded_at DATETIME(3) NOT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  CONSTRAINT chk_ball_positions_range CHECK (position BETWEEN 0 AND 100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_ball_positions_recorded_at ON ball_positions (recorded_at);
