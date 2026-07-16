@@ -29,8 +29,8 @@
 미구현/미검증:
 - [ ] API 핸들러 레벨 테스트 (`pages/api/positions.js`, `pages/api/occupancy.js`)
 - [ ] 실제 MySQL 연결 기반 수동/통합 검증
-- [ ] `docs/requirements.md` 최신화 (구현 상태 및 결정 사항 반영)
-- [ ] `README.md` 설치/실행/마이그레이션 가이드
+- [x] `docs/requirements.md` 최신화 (구현 상태 및 결정 사항 반영)
+- [x] `README.md` 설치/실행/마이그레이션 가이드
 - [ ] 배포 환경 설정 문서화
 - [ ] API 인증/접근 제어 (현재 완전 공개 상태)
 - [ ] 에러 로깅/모니터링 방안
@@ -38,9 +38,9 @@
 ## 3. 단계별 작업 계획
 
 ### Phase 1 — 문서 최신화
-- [ ] `docs/requirements.md`의 "이번 단계 범위" 절을 실제 구현 상태로 갱신
-- [ ] 진영 배정·경계값 등 확정된 결정 사항을 `docs/requirements.md`에 반영
-- [ ] `README.md`에 설치, 환경변수(`.env.local`), 마이그레이션, 실행 방법 추가
+- [x] `docs/requirements.md`의 "이번 단계 범위" 절을 실제 구현 상태로 갱신
+- [x] 진영 배정·경계값 등 확정된 결정 사항을 `docs/requirements.md`에 반영
+- [x] `README.md`에 설치, 환경변수(`.env.local`), 마이그레이션, 실행 방법 추가
 
 ### Phase 2 — 검증 및 테스트 보강
 - [ ] `yarn test`로 기존 단위 테스트 통과 확인
