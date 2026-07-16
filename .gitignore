@@ -2,8 +2,15 @@
 
 # dependencies
 /node_modules
-/.pnp
-.pnp.js
+
+# yarn berry (nodeLinker: node-modules, no zero-installs)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
 
 # testing
 /coverage
