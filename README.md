@@ -1,7 +1,7 @@
 # exam-claude-fb
 축구공 모니터링
 
-축구공 위치 기반 점유율 추적 앱. 요구사항은 [docs/requirements.md](docs/requirements.md), 후속 작업 계획은 [docs/plans/ball-position-tracking-work-plan.md](docs/plans/ball-position-tracking-work-plan.md) 참고.
+축구공 위치 기반 점유율 추적 앱. 요구사항은 [docs/requirements.md](docs/requirements.md), 후속 작업 계획은 [docs/plans/ball-position-tracking-work-plan.md](docs/plans/ball-position-tracking-work-plan.md), 배포 전 체크리스트는 [docs/deploy-checklist.md](docs/deploy-checklist.md) 참고.
 
 ## 설치
 

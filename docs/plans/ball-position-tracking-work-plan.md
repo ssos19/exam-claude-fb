@@ -31,8 +31,8 @@
 - [x] 실제 MySQL 연결 기반 수동/통합 검증
 - [x] `docs/requirements.md` 최신화 (구현 상태 및 결정 사항 반영)
 - [x] `README.md` 설치/실행/마이그레이션 가이드
-- [ ] 배포 환경 설정 문서화
-- [ ] API 인증/접근 제어 (현재 완전 공개 상태)
+- [x] 배포 환경 설정 문서화
+- [x] API 인증/접근 제어 (현재 완전 공개 상태 — 사용자 결정: 지금은 보류하고 `docs/deploy-checklist.md`에 문서화만)
 - [ ] 에러 로깅/모니터링 방안
 
 ## 3. 단계별 작업 계획
@@ -58,10 +58,10 @@
 - 새 테스트: `lib/validation.test.js`(12개), `pages/api/positions.test.js`(6개), `pages/api/occupancy.test.js`(4개) — 기존 7개 포함 총 29개 테스트 전부 통과.
 
 ### Phase 3 — 안정성/운영 보완
-- [ ] API 인증/요청 제한 필요 여부 결정 및 반영
-- [ ] 에러 응답 포맷 일관성 점검 (`ValidationError` vs 500 처리)
-- [ ] DB 커넥션 풀 설정 재검토 (운영 환경 트래픽 기준)
-- [ ] 배포 전 체크리스트 작성 (환경변수, 마이그레이션 순서, 헬스체크)
+- [x] API 인증/요청 제한 필요 여부 결정 및 반영 — **[결정됨]** 지금은 인증/요청 제한을 추가하지 않는다(내부·데모 용도로 가정). `docs/deploy-checklist.md`에 "공개 인터넷 배포 전 반드시 추가" 경고로 문서화만 함.
+- [x] 에러 응답 포맷 일관성 점검 (`ValidationError` vs 500 처리) — 점검 중 405 응답만 plain text이고 나머지는 `{error: ...}` JSON인 불일치를 발견해 수정함 (`pages/api/positions.js`, `pages/api/occupancy.js`).
+- [x] DB 커넥션 풀 설정 재검토 (운영 환경 트래픽 기준) — 현재 `connectionLimit: 10`은 저트래픽 기준 적절. 실 트래픽 데이터 없어 값은 유지하고 재조정 필요성만 `docs/deploy-checklist.md`에 기록.
+- [x] 배포 전 체크리스트 작성 (환경변수, 마이그레이션 순서, 헬스체크) — `docs/deploy-checklist.md` 신규 작성.
 
 ### Phase 4 — 후속 기능 논의 (현재 범위 밖, 우선순위 논의 필요)
 - [ ] 점유 이벤트(소유권) 트래킹 도입 여부
