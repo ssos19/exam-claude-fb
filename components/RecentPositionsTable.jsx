@@ -15,7 +15,9 @@ export default function RecentPositionsTable({ items }) {
         {items.map((item) => (
           <tr key={item.id} className="border-b border-gray-100">
             <td className="py-1 pr-4 text-gray-600">
-              {new Date(item.recordedAt).toLocaleString()}
+              {new Date(item.recordedAt).toLocaleString('ko-KR', {
+                timeZone: 'Asia/Seoul',
+              })}
             </td>
             <td className="py-1">{item.position}</td>
           </tr>
