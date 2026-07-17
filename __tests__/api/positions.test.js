@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import handler from './positions';
+import handler from '@/pages/api/positions';
 
 vi.mock('@/lib/queries', () => ({
   insertPosition: vi.fn(),

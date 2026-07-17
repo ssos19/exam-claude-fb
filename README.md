@@ -3,6 +3,8 @@
 
 축구공 위치 기반 점유율 추적 앱. 요구사항은 [docs/requirements.md](docs/requirements.md), 후속 작업 계획은 [docs/plans/ball-position-tracking-work-plan.md](docs/plans/ball-position-tracking-work-plan.md), 배포 전 체크리스트는 [docs/deploy-checklist.md](docs/deploy-checklist.md) 참고.
 
+Docker Desktop이 있는 컴퓨터(Windows 포함)에서 설치 없이 바로 확인하려면 [docs/docker.md](docs/docker.md) 참고 — `docker compose up --build` 한 줄로 앱+MySQL이 함께 뜬다.
+
 ## 설치
 
 ```bash

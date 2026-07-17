@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import handler from './occupancy';
+import handler from '@/pages/api/occupancy';
 
 vi.mock('@/lib/queries', () => ({
   getAllPositionsOrdered: vi.fn(),
