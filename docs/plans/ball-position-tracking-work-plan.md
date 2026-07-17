@@ -27,8 +27,8 @@
 - [x] 점유율 계산 로직 단위 테스트 (`lib/occupancy.test.js`)
 
 미구현/미검증:
-- [ ] API 핸들러 레벨 테스트 (`pages/api/positions.js`, `pages/api/occupancy.js`)
-- [ ] 실제 MySQL 연결 기반 수동/통합 검증
+- [x] API 핸들러 레벨 테스트 (`pages/api/positions.js`, `pages/api/occupancy.js`)
+- [x] 실제 MySQL 연결 기반 수동/통합 검증
 - [x] `docs/requirements.md` 최신화 (구현 상태 및 결정 사항 반영)
 - [x] `README.md` 설치/실행/마이그레이션 가이드
 - [ ] 배포 환경 설정 문서화
@@ -43,12 +43,19 @@
 - [x] `README.md`에 설치, 환경변수(`.env.local`), 마이그레이션, 실행 방법 추가
 
 ### Phase 2 — 검증 및 테스트 보강
-- [ ] `yarn test`로 기존 단위 테스트 통과 확인
-- [ ] 로컬 MySQL로 `yarn db:migrate` 실행 검증
-- [ ] `/api/positions` POST/GET 수동 호출 검증 (curl 또는 UI)
-- [ ] `/api/occupancy` 응답 검증 (기록 2건 미만/이상 케이스 각각)
-- [ ] 유효성 검사 경계값 테스트 추가 (position 0, 100, 음수, 101, 비정수, limit 범위 초과)
-- [ ] `yarn lint` 통과 확인
+- [x] `yarn test`로 기존 단위 테스트 통과 확인 (npm install로 대체 — 아래 참고)
+- [x] 로컬 MySQL로 `yarn db:migrate` 실행 검증
+- [x] `/api/positions` POST/GET 수동 호출 검증 (curl 또는 UI)
+- [x] `/api/occupancy` 응답 검증 (기록 2건 미만/이상 케이스 각각)
+- [x] 유효성 검사 경계값 테스트 추가 (position 0, 100, 음수, 101, 비정수, limit 범위 초과)
+- [x] `yarn lint` 통과 확인 (eslint 직접 실행 — 아래 참고)
+
+**실행 메모**:
+- 이 환경에서 `corepack`이 `repo.yarnpkg.com`에 접근할 때 프록시가 조직 정책으로 403을 반환해 `yarn@4.5.0` 바이너리를 받지 못했다. 대신 `npm install --no-save`로 `node_modules`만 채우고(`yarn.lock`은 건드리지 않음), `node_modules/.bin/vitest`·`node_modules/.bin/eslint`를 직접 실행해 검증했다. 실제 CI/개발 환경에서 yarn berry 레지스트리 접근이 가능하면 `yarn test`/`yarn lint`로 동일하게 통과한다.
+- 로컬에 `mysql-server` 8.0을 설치해 `football` DB와 전용 사용자(`appuser`)를 만들고, `.env.local`(gitignore됨)을 구성해 `node scripts/migrate.js`로 마이그레이션을 적용·재적용(멱등성 확인)했다.
+- `next dev`를 임시 포트(3100)로 띄워 `POST/GET /api/positions`, `GET /api/occupancy`를 curl로 호출: 정상 케이스, 경계값(0, 100), 경계 초과(-1, 101, 50.5, limit 0/501), 잘못된 메서드(405) 모두 문서화된 동작과 일치함을 확인.
+- `vitest.config.js`에 `resolve.alias`로 `@/*`를 추가해야 API 핸들러 테스트에서 `@/lib/...` import가 동작함을 발견하고 수정함(`jsconfig.json`은 Next.js 빌드에만 적용되고 vitest에는 별도 설정이 필요했음).
+- 새 테스트: `lib/validation.test.js`(12개), `pages/api/positions.test.js`(6개), `pages/api/occupancy.test.js`(4개) — 기존 7개 포함 총 29개 테스트 전부 통과.
 
 ### Phase 3 — 안정성/운영 보완
 - [ ] API 인증/요청 제한 필요 여부 결정 및 반영
