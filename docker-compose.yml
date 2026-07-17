@@ -59,5 +59,43 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # 선택적(opt-in) 개발 모드 서비스. profiles에 걸려 있어서 일반
+  # "docker compose up" / "docker compose up --build"로는 절대 뜨지 않는다
+  # (기존 프로덕션 흐름을 그대로 보존하기 위함). 켜고 싶을 때만 명시적으로:
+  #   docker compose up -d mysql
+  #   docker compose run --rm migrate      # 최초 1회, 스키마 적용
+  #   docker compose --profile dev up app-dev
+  # 로 실행한다. "app"(프로덕션)과 "app-dev"는 둘 다 호스트 3000번
+  # 포트를 쓰므로 동시에 띄우지 않는다.
+  app-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: deps # node_modules만 있으면 되고, 소스는 아래 volumes로 마운트한다.
+    working_dir: /app
+    command: ["node_modules/.bin/next", "dev", "-H", "0.0.0.0", "-p", "3000"]
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: appuser
+      DB_PASSWORD: apppass
+      DB_NAME: football
+      NODE_ENV: development
+    volumes:
+      # 호스트(Windows)의 소스 코드를 컨테이너에 그대로 마운트 → 코드 수정이
+      # 즉시 반영되어 핫리로드가 동작한다.
+      - .:/app
+      # 위 바인드 마운트가 컨테이너 안의 node_modules(리눅스용으로 빌드됨)를
+      # 덮어써버리는 걸 막기 위한 익명 볼륨. 이게 없으면 호스트에 node_modules가
+      # 없을 땐 컨테이너 안 것까지 사라지고, 있을 땐(Windows에서 yarn install한
+      # 것) OS가 달라 네이티브 모듈 문제가 생길 수 있다.
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 volumes:
   mysql_data:
