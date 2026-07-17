@@ -12,10 +12,19 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      # "-h 127.0.0.1"로 강제로 TCP를 통해 ping한다. "-h localhost"를 쓰면
+      # mysqladmin이 유닉스 소켓으로 붙는데, MySQL 공식 이미지는 최초 실행 시
+      # (볼륨이 비어있을 때) init 스크립트만 실행하는 임시 서버를
+      # --skip-networking(TCP 없이, 소켓만)으로 잠깐 띄웠다가 완전히 재시작한다.
+      # 이때 소켓 기준 healthcheck는 그 "임시 서버" 단계에서부터 healthy로
+      # 잘못 판정해버려서, migrate 컨테이너가 TCP(mysql:3306)로 접속을
+      # 시도하는 시점에 아직 포트가 열리지 않아 연결이 거부될 수 있다.
+      # TCP로 직접 ping하면 실제 서비스 가능한 시점과 healthcheck가 일치한다.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 30
+      start_period: 30s
 
   migrate:
     build:
