@@ -37,13 +37,23 @@ beforeEach(() => {
 });
 
 describe('GET /api/occupancy', () => {
-  it('기록이 2건 미만이면 insufficient_data를 반환한다', async () => {
-    getAllPositionsOrdered.mockResolvedValue([]);
-
-    const req = { method: 'GET' };
+  it('matchId가 없으면 400을 반환한다', async () => {
+    const req = { method: 'GET', query: {} };
     const res = createRes();
     await handler(req, res);
 
+    expect(getAllPositionsOrdered).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('기록이 2건 미만이면 insufficient_data를 반환한다', async () => {
+    getAllPositionsOrdered.mockResolvedValue([]);
+
+    const req = { method: 'GET', query: { matchId: '1' } };
+    const res = createRes();
+    await handler(req, res);
+
+    expect(getAllPositionsOrdered).toHaveBeenCalledWith(1);
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ status: 'insufficient_data', sampleCount: 0 });
   });
@@ -54,7 +64,7 @@ describe('GET /api/occupancy', () => {
       { position: 80, recordedAt: new Date('2026-01-01T00:00:10Z') },
     ]);
 
-    const req = { method: 'GET' };
+    const req = { method: 'GET', query: { matchId: '1' } };
     const res = createRes();
     await handler(req, res);
 
@@ -68,7 +78,7 @@ describe('GET /api/occupancy', () => {
   it('DB 오류 시 500을 반환한다', async () => {
     getAllPositionsOrdered.mockRejectedValue(new Error('db down'));
 
-    const req = { method: 'GET' };
+    const req = { method: 'GET', query: { matchId: '1' } };
     const res = createRes();
     await handler(req, res);
 

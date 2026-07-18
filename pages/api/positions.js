@@ -1,11 +1,23 @@
-import { insertPosition, getRecentPositions } from '@/lib/queries';
-import { parsePosition, parseLimit, ValidationError } from '@/lib/validation';
+import { insertPosition, getRecentPositions, getMatchById } from '@/lib/queries';
+import { parsePosition, parseLimit, parseId, ValidationError } from '@/lib/validation';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
+      const matchId = parseId(req.body?.matchId, 'matchId');
       const position = parsePosition(req.body?.position);
-      const record = await insertPosition(position);
+
+      const match = await getMatchById(matchId);
+      if (!match) {
+        res.status(400).json({ error: 'match not found' });
+        return;
+      }
+      if (match.status === 'ended') {
+        res.status(403).json({ error: 'match has ended' });
+        return;
+      }
+
+      const record = await insertPosition(matchId, position);
       res.status(201).json(record);
     } catch (err) {
       if (err instanceof ValidationError) {
@@ -20,8 +32,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
+      const matchId = parseId(req.query.matchId, 'matchId');
       const limit = parseLimit(req.query.limit);
-      const items = await getRecentPositions(limit);
+      const items = await getRecentPositions(matchId, limit);
       res.status(200).json({ items, count: items.length });
     } catch (err) {
       if (err instanceof ValidationError) {

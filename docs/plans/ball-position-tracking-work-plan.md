@@ -67,7 +67,7 @@
 - [ ] 점유 이벤트(소유권) 트래킹 도입 여부
 - [ ] 위치 기록 수정/삭제 기능 필요 여부
 - [ ] 점유율 추이 시각화(차트) 필요 여부
-- [ ] 다중 경기/세션 구분 필요 여부
+- [x] 다중 경기/세션 구분 필요 여부 — **[구현됨]** 경기(Match) 개념 도입. `matches` 테이블, `ball_positions.match_id`, `/matches/[id]` 페이지, 경기별 API(`/api/matches`, `/api/positions?matchId=`, `/api/occupancy?matchId=`). 여러 경기가 동시에 `in_progress`여도 막지 않아 여러 탭/필드 동시 추적 가능. 자세한 내용은 `docs/requirements.md`의 "경기(Match) 개념" 절 참고.
 
 ## 진행 방식 및 검증
 - 각 체크박스는 항목을 완료할 때 `[x]`로 갱신하고, 관련 커밋 메시지에 어떤 항목을 완료했는지 명시한다.
