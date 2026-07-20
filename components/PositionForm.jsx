@@ -9,6 +9,11 @@ const POSITION_DIFF_THRESHOLD = 5;
 const SPEED_UP_FACTOR = 0.9;
 const SLOW_DOWN_FACTOR = 1.125;
 
+// styles/globals.css의 input[type=range]::-webkit-slider-thumb 등과
+// 반드시 같은 값을 유지해야 한다 - SoccerField의 공 마커 위치 계산이
+// 이 값을 기준으로 슬라이더 thumb의 실제 이동 범위에 맞춘다.
+const SLIDER_THUMB_SIZE_PX = 16;
+
 function formatTime(date) {
   return date.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul' });
 }
@@ -230,33 +235,41 @@ export default function PositionForm({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* 경기장 + 슬라이더를 하나의 그룹으로 묶어 고정 사이즈로 중앙 정렬 */}
+      {/* 경기장 + 슬라이더를 하나의 그룹으로 묶어 고정 사이즈로 중앙 정렬.
+          SoccerField와 <input>이 이 div의 직계 자식으로 나란히 있어야
+          (사이에 다른 폭을 나눠 쓰는 형제 요소가 없어야) 둘의 실제 렌더링
+          너비가 정확히 같아진다. 라벨 텍스트/숫자 표시는 별도 줄로 뺐다. */}
       <div className="mx-auto w-full max-w-md space-y-2">
-        <SoccerField position={displayPosition} verticalPercent={verticalPercent} />
+        <SoccerField
+          position={displayPosition}
+          verticalPercent={verticalPercent}
+          thumbSizePx={SLIDER_THUMB_SIZE_PX}
+        />
 
-        <label className="flex flex-col text-sm text-gray-700">
-          공 위치 (0=완전 왼쪽, 100=완전 오른쪽)
-          <div className="mt-1 flex items-center gap-3">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={displayPosition}
-              disabled={controlsLocked}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                setValue(next);
-                valueRef.current = next;
-                setVerticalPercent(randomVerticalPercent());
-              }}
-              className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <span className="w-10 text-right font-mono text-base tabular-nums">
-              {displayPosition}
-            </span>
-          </div>
-        </label>
+        <div className="flex items-center justify-between text-sm text-gray-700">
+          <label htmlFor="position-slider">
+            공 위치 (0=완전 왼쪽, 100=완전 오른쪽)
+          </label>
+          <span className="font-mono text-base tabular-nums">
+            {displayPosition}
+          </span>
+        </div>
+        <input
+          id="position-slider"
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={displayPosition}
+          disabled={controlsLocked}
+          onChange={(e) => {
+            const next = Number(e.target.value);
+            setValue(next);
+            valueRef.current = next;
+            setVerticalPercent(randomVerticalPercent());
+          }}
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+        />
       </div>
 
       <div className="flex items-center gap-2">

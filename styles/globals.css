@@ -24,3 +24,36 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* input[type=range] thumb 크기를 브라우저 기본값(제각각) 대신 고정값으로
+   맞춘다 - components/PositionForm.jsx의 SLIDER_THUMB_SIZE_PX와 반드시
+   같은 값을 유지해야, 경기장 위 공 마커의 위치 계산이 슬라이더 thumb의
+   실제 이동 범위(트랙 양 끝에서 thumb 반지름만큼 안쪽)와 정확히 맞는다. */
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #2563eb;
+  cursor: pointer;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: none;
+  background: #2563eb;
+  cursor: pointer;
+}
+
+input[type='range']:disabled::-webkit-slider-thumb {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+input[type='range']:disabled::-moz-range-thumb {
+  background: #93c5fd;
+  cursor: not-allowed;
+}

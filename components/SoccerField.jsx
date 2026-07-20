@@ -2,9 +2,17 @@
 // 여기서 직접 굴리지 않고(렌더 중 Math.random() 호출은 React 순수성 규칙
 // 위반), 부모(PositionForm)가 슬라이더 이벤트 핸들러 안에서 미리 굴려
 // verticalPercent prop으로 내려준다.
-export default function SoccerField({ position, verticalPercent }) {
+//
+// thumbSizePx: 슬라이더 thumb의 실제 지름(px, PositionForm의
+// SLIDER_THUMB_SIZE_PX와 동일해야 함). 네이티브 range input은 thumb가
+// 트랙 밖으로 튀어나오지 않도록, 값 0/100에서 thumb 중심이 트랙 양 끝에서
+// thumbSizePx/2만큼 안쪽에 위치한다. 공 마커도 position 0~100%가 아니라
+// 이 여백을 반영한 지점으로 이동해야 슬라이더 thumb와 시각적으로 맞는다.
+export default function SoccerField({ position, verticalPercent, thumbSizePx }) {
+  const ballLeft = `calc(${thumbSizePx / 2}px + (100% - ${thumbSizePx}px) * ${position / 100})`;
+
   return (
-    <div className="relative mx-auto h-40 w-full max-w-md overflow-hidden rounded-md border-2 border-white bg-green-600 shadow-inner">
+    <div className="relative h-40 w-full overflow-hidden rounded-md border-2 border-white bg-green-600 shadow-inner">
       {/* 중앙 세로선 */}
       <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-white/70" />
       {/* 중앙 서클 */}
@@ -26,7 +34,7 @@ export default function SoccerField({ position, verticalPercent }) {
         aria-hidden="true"
         className="absolute text-2xl transition-all duration-500 ease-out"
         style={{
-          left: `${position}%`,
+          left: ballLeft,
           top: `${verticalPercent}%`,
           transform: 'translate(-50%, -50%)',
         }}
