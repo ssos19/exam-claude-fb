@@ -1,0 +1,24 @@
+-- schema_migrations
+ALTER TABLE schema_migrations COMMENT = '적용된 마이그레이션 기록';
+ALTER TABLE schema_migrations
+  MODIFY COLUMN filename VARCHAR(255) NOT NULL COMMENT '마이그레이션 파일명',
+  MODIFY COLUMN applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '적용 시각';
+
+-- matches
+ALTER TABLE matches COMMENT = '경기 정보';
+ALTER TABLE matches
+  MODIFY COLUMN id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '경기 ID',
+  MODIFY COLUMN started_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '시작 시각',
+  MODIFY COLUMN ended_at DATETIME(3) NULL COMMENT '종료 시각',
+  MODIFY COLUMN status ENUM('in_progress', 'ended') NOT NULL DEFAULT 'in_progress' COMMENT '진행 상태',
+  MODIFY COLUMN controller_token VARCHAR(64) NULL COMMENT '제어권을 가진 클라이언트 토큰',
+  MODIFY COLUMN controller_heartbeat_at DATETIME(3) NULL COMMENT '제어권 heartbeat 시각';
+
+-- ball_positions
+ALTER TABLE ball_positions COMMENT = '공 위치 기록';
+ALTER TABLE ball_positions
+  MODIFY COLUMN id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '기록 ID',
+  MODIFY COLUMN match_id BIGINT UNSIGNED NOT NULL COMMENT '소속 경기 ID',
+  MODIFY COLUMN position TINYINT UNSIGNED NOT NULL COMMENT '공 위치(0~100)',
+  MODIFY COLUMN recorded_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '기록 시각',
+  MODIFY COLUMN created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성 시각';
