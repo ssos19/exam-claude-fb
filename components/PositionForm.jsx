@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import SoccerField from './SoccerField';
 
-const SUBMIT_INTERVAL_MS = 3000;
+// 서버 전송 간격(동적) 관련 상수.
+const BASE_SUBMIT_INTERVAL_MS = 3000;
+const MIN_SUBMIT_INTERVAL_MS = 500;
+const MAX_SUBMIT_INTERVAL_MS = 12000;
+const POSITION_DIFF_THRESHOLD = 5;
+const SPEED_UP_FACTOR = 0.9;
+const SLOW_DOWN_FACTOR = 1.125;
 
 function formatTime(date) {
   return date.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul' });
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 // 경기장 위 공 마커의 세로(상하) 위치 - 실제 데이터와 무관한 순수 시각 효과.
@@ -49,6 +59,18 @@ export default function PositionForm({
   // 아니라 아래 handleChange, 즉 이벤트 핸들러 안에서만 갱신한다.)
   const valueRef = useRef(value);
 
+  // 실제 스케줄링에 쓰는 "현재 전송 간격"은 ref로 들고 있는다 - 컴포넌트가
+  // 마운트된 동안 한 번만 초기화되고, 정지/재개로 이 submit effect가
+  // 재실행돼도(paused가 deps에 있음) 리셋되지 않는다("멈췄던 간격 값 그대로
+  // 이어서 재개" 요구사항). 화면 표시용으로만 별도 state에 미러링한다.
+  const submitIntervalRef = useRef(BASE_SUBMIT_INTERVAL_MS);
+  const [displayIntervalMs, setDisplayIntervalMs] = useState(
+    BASE_SUBMIT_INTERVAL_MS
+  );
+  // 간격 조정 로직(직전 전송값과의 차이 비교)의 기준이 되는 "직전에 성공적으로
+  // 전송한 값". 첫 전송에는 비교 대상이 없으니 간격을 조정하지 않는다.
+  const lastSentPositionRef = useRef(null);
+
   useEffect(() => {
     // 종료됐거나 사용자가 정지시켰으면 전송 자체를 하지 않는다. isController가
     // false인 경우는 여기서 막지 않는다 - 잠금이 풀렸는지(제어자가 나가서
@@ -58,22 +80,42 @@ export default function PositionForm({
       return undefined;
     }
 
+    let timeoutId;
+    // effect가 정리(cleanup)된 뒤에도 이미 날아간 fetch의 응답이 늦게 와서
+    // 다음 setTimeout을 또 예약해버리는 걸 막기 위한 플래그.
+    let cancelled = false;
+
+    function scheduleNext() {
+      if (cancelled) {
+        return;
+      }
+      timeoutId = setTimeout(submitPosition, submitIntervalRef.current);
+    }
+
     async function submitPosition() {
+      const positionToSend = valueRef.current;
       try {
         const res = await fetch('/api/positions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             matchId,
-            position: valueRef.current,
+            position: positionToSend,
             controllerToken,
           }),
         });
+
+        if (cancelled) {
+          return;
+        }
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           setStatus('error');
           setError(data.error ?? '요청 실패');
+          // 실패 시에는 간격을 조정하지 않고(성공적으로 보낸 값 기준 비교가
+          // 아니므로) 같은 간격으로 재시도한다.
+          scheduleNext();
           return;
         }
 
@@ -81,33 +123,50 @@ export default function PositionForm({
         setError(null);
         setLastSubmittedAt(new Date());
         onSubmitSuccess?.();
+
+        if (lastSentPositionRef.current !== null) {
+          const diff = Math.abs(positionToSend - lastSentPositionRef.current);
+          const factor =
+            diff >= POSITION_DIFF_THRESHOLD ? SPEED_UP_FACTOR : SLOW_DOWN_FACTOR;
+          const nextInterval = clamp(
+            submitIntervalRef.current * factor,
+            MIN_SUBMIT_INTERVAL_MS,
+            MAX_SUBMIT_INTERVAL_MS
+          );
+          submitIntervalRef.current = nextInterval;
+          setDisplayIntervalMs(nextInterval);
+        }
+        lastSentPositionRef.current = positionToSend;
+
+        scheduleNext();
       } catch (err) {
+        if (cancelled) {
+          return;
+        }
         setStatus('error');
         setError(err.message);
+        scheduleNext();
       }
     }
 
     // 페이지 진입 즉시(마운트 시) 한 번 강제 전송해서 선점을 시도한 뒤,
-    // 이후 3초 간격으로 반복한다.
+    // 이후 동적으로 계산되는 간격으로 반복한다.
     submitPosition();
 
-    // 탭이 숨겨지면(hidden) 인터벌을 멈추고, 다시 보이면 새로 시작한다.
-    // intervalId는 이 클로저 안에서 계속 재할당되며, 아래 cleanup 함수는
-    // 항상 그 시점의 최신 intervalId를 참조한다.
-    let intervalId = setInterval(submitPosition, SUBMIT_INTERVAL_MS);
-
+    // 탭이 숨겨지면(hidden) 타이머를 멈추고, 다시 보이면 새로 시작한다.
     function handleVisibilityChange() {
       if (document.hidden) {
-        clearInterval(intervalId);
+        clearTimeout(timeoutId);
       } else {
-        intervalId = setInterval(submitPosition, SUBMIT_INTERVAL_MS);
+        scheduleNext();
       }
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      clearInterval(intervalId);
+      cancelled = true;
+      clearTimeout(timeoutId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [matchId, isEnded, paused, controllerToken, onSubmitSuccess]);
@@ -233,20 +292,25 @@ export default function PositionForm({
         {!isEnded && isController && paused && (
           <span className="text-gray-500">일시정지됨</span>
         )}
-        {!isEnded && isController && !paused && status === 'idle' && (
-          <span className="text-gray-500">
-            {SUBMIT_INTERVAL_MS / 1000}초마다 자동으로 전송됩니다.
-          </span>
-        )}
-        {!isEnded && isController && !paused && status === 'success' && lastSubmittedAt && (
-          <span className="text-green-600">
-            마지막 전송 성공: {formatTime(lastSubmittedAt)}
-          </span>
-        )}
-        {!isEnded && isController && !paused && status === 'error' && (
-          <span role="alert" className="text-red-600">
-            전송 실패: {error}
-          </span>
+        {!isEnded && isController && !paused && (
+          <>
+            {status === 'idle' && (
+              <span className="text-gray-500">자동으로 전송됩니다.</span>
+            )}
+            {status === 'success' && lastSubmittedAt && (
+              <span className="text-green-600">
+                마지막 전송 성공: {formatTime(lastSubmittedAt)}
+              </span>
+            )}
+            {status === 'error' && (
+              <span role="alert" className="text-red-600">
+                전송 실패: {error}
+              </span>
+            )}
+            <span className="ml-2 text-gray-400">
+              (다음 전송까지 약 {(displayIntervalMs / 1000).toFixed(1)}초)
+            </span>
+          </>
         )}
       </p>
     </div>
