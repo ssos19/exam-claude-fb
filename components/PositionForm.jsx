@@ -15,6 +15,8 @@ function randomVerticalPercent() {
 export default function PositionForm({
   matchId,
   ended,
+  controllerToken,
+  isController,
   lastPosition,
   onSubmitSuccess,
   onEnd,
@@ -32,9 +34,11 @@ export default function PositionForm({
   // 쓰면 되므로, prop을 별도 state로 복사하는 동기화 이펙트가 필요 없다.
   const [justEnded, setJustEnded] = useState(false);
   const isEnded = ended || justEnded;
-  // 종료된 경기는 슬라이더의 임시 로컬 값이 아니라 마지막으로 저장된 값을
-  // 그대로 정적으로 보여준다. 진행 중일 때는 사용자가 조작 중인 값을 보여준다.
-  const displayPosition = isEnded ? (lastPosition ?? 50) : value;
+  // 내가 지금 제어 중이 아니면(잠겨있거나 종료됐으면) 로컬에서 만지작거리는
+  // 임시 값이 아니라 마지막으로 저장된 값을 그대로 정적으로 보여준다.
+  const showLiveValue = isController && !isEnded;
+  const displayPosition = showLiveValue ? value : (lastPosition ?? 50);
+  const controlsLocked = isEnded || !isController;
   const [ending, setEnding] = useState(false);
   const [status, setStatus] = useState('idle'); // 'idle' | 'success' | 'error'
   const [lastSubmittedAt, setLastSubmittedAt] = useState(null);
@@ -46,8 +50,11 @@ export default function PositionForm({
   const valueRef = useRef(value);
 
   useEffect(() => {
-    // 종료됐거나 사용자가 정지시켰으면 전송 자체를 하지 않는다.
-    if (isEnded || paused) {
+    // 종료됐거나 사용자가 정지시켰으면 전송 자체를 하지 않는다. isController가
+    // false인 경우는 여기서 막지 않는다 - 잠금이 풀렸는지(제어자가 나가서
+    // heartbeat가 끊겼는지)를 이 주기적 전송 시도 자체로 계속 확인해야
+    // "10초 뒤 자동으로 제어권을 넘겨받는" 동작이 성립하기 때문이다.
+    if (isEnded || paused || !controllerToken) {
       return undefined;
     }
 
@@ -56,7 +63,11 @@ export default function PositionForm({
         const res = await fetch('/api/positions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ matchId, position: valueRef.current }),
+          body: JSON.stringify({
+            matchId,
+            position: valueRef.current,
+            controllerToken,
+          }),
         });
 
         if (!res.ok) {
@@ -75,6 +86,10 @@ export default function PositionForm({
         setError(err.message);
       }
     }
+
+    // 페이지 진입 즉시(마운트 시) 한 번 강제 전송해서 선점을 시도한 뒤,
+    // 이후 3초 간격으로 반복한다.
+    submitPosition();
 
     // 탭이 숨겨지면(hidden) 인터벌을 멈추고, 다시 보이면 새로 시작한다.
     // intervalId는 이 클로저 안에서 계속 재할당되며, 아래 cleanup 함수는
@@ -95,7 +110,7 @@ export default function PositionForm({
       clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [matchId, isEnded, paused, onSubmitSuccess]);
+  }, [matchId, isEnded, paused, controllerToken, onSubmitSuccess]);
 
   async function handleEnd() {
     setEnding(true);
@@ -124,7 +139,7 @@ export default function PositionForm({
               max={100}
               step={1}
               value={displayPosition}
-              disabled={isEnded}
+              disabled={controlsLocked}
               onChange={(e) => {
                 const next = Number(e.target.value);
                 setValue(next);
@@ -144,7 +159,7 @@ export default function PositionForm({
         <button
           type="button"
           onClick={() => setPaused((p) => !p)}
-          disabled={isEnded}
+          disabled={controlsLocked}
           className="rounded border border-gray-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {paused ? '재개' : '정지'}
@@ -152,7 +167,7 @@ export default function PositionForm({
         <button
           type="button"
           onClick={handleEnd}
-          disabled={isEnded || ending}
+          disabled={controlsLocked || ending}
           className="rounded bg-red-600 px-3 py-1.5 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isEnded ? '종료됨' : '경기 종료'}
@@ -165,20 +180,25 @@ export default function PositionForm({
             경기가 종료되어 더 이상 기록되지 않습니다.
           </span>
         )}
-        {!isEnded && paused && (
+        {!isEnded && !isController && (
+          <span className="text-gray-500">
+            다른 사용자가 이 경기를 제어 중입니다 (보기 전용)
+          </span>
+        )}
+        {!isEnded && isController && paused && (
           <span className="text-gray-500">일시정지됨</span>
         )}
-        {!isEnded && !paused && status === 'idle' && (
+        {!isEnded && isController && !paused && status === 'idle' && (
           <span className="text-gray-500">
             {SUBMIT_INTERVAL_MS / 1000}초마다 자동으로 전송됩니다.
           </span>
         )}
-        {!isEnded && !paused && status === 'success' && lastSubmittedAt && (
+        {!isEnded && isController && !paused && status === 'success' && lastSubmittedAt && (
           <span className="text-green-600">
             마지막 전송 성공: {formatTime(lastSubmittedAt)}
           </span>
         )}
-        {!isEnded && !paused && status === 'error' && (
+        {!isEnded && isController && !paused && status === 'error' && (
           <span role="alert" className="text-red-600">
             전송 실패: {error}
           </span>
