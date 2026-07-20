@@ -112,6 +112,51 @@ export default function PositionForm({
     };
   }, [matchId, isEnded, paused, controllerToken, onSubmitSuccess]);
 
+  // 공 위치 랜덤 워크: 서버 전송(3초 고정 간격)과는 완전히 별개의 타이머다.
+  // 화면(슬라이더 값, 경기장 위 공 마커)에만 반영되고, 실제로 서버에 전송되는
+  // 시점/주기는 위 제출 effect가 그대로 담당한다 - 그때그때의 valueRef.current를
+  // 읽어가는 것뿐이라, 수동 조작이든 이 랜덤 워크든 구분 없이 자연스럽게
+  // 다음 3초 전송에 반영된다.
+  useEffect(() => {
+    // 잠겨있거나(제어권 없음/종료) 사용자가 정지시켰으면 랜덤 워크도 함께 멈춘다.
+    if (controlsLocked || paused) {
+      return undefined;
+    }
+
+    let timeoutId;
+
+    function tick() {
+      const delta = Math.floor(Math.random() * 21) - 10; // -10 ~ 10 사이 정수
+      const next = Math.min(100, Math.max(0, valueRef.current + delta));
+      setValue(next);
+      valueRef.current = next;
+      setVerticalPercent(randomVerticalPercent());
+      scheduleNext();
+    }
+
+    function scheduleNext() {
+      const delay = 500 + Math.random() * 500; // 0.5초 ~ 1초, 매 틱마다 새로 랜덤
+      timeoutId = setTimeout(tick, delay);
+    }
+
+    scheduleNext();
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        clearTimeout(timeoutId);
+      } else {
+        scheduleNext();
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [controlsLocked, paused]);
+
   async function handleEnd() {
     setEnding(true);
     try {
