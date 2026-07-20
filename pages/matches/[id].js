@@ -100,6 +100,7 @@ export default function MatchPage() {
       <PositionForm
         matchId={match.id}
         ended={match.status === 'ended'}
+        lastPosition={recent[0]?.position}
         onSubmitSuccess={loadPositionsAndOccupancy}
         onEnd={handleEnd}
       />
